@@ -1,42 +1,26 @@
-[build-system]
-requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "mlx-bertopic"
-version = "0.3.0"
-description = "BERTopic backends for Apple Silicon — MLX (Metal) GPU topic modeling"
-readme = "README.md"
+version = "0.4.0"
+description = "BERTopic backends for Apple Silicon (MLX Metal GPU)"
 requires-python = ">=3.10"
+readme = "README.md"
 license = {text = "MIT"}
-authors = [{name = "Felix Lin"}]
-keywords = ["bertopic", "topic-modeling", "mlx", "apple-silicon", "metal", "gpu", "nlp"]
-classifiers = [
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
-]
 dependencies = [
-    "mlx>=0.21",
-    "numpy",
-    "scipy",
-    "scikit-learn",
-    "pandas",
-    "bertopic>=0.17.4",
-    "hdbscan>=0.8.33",
-    "mlx-vis>=0.7.0",
-    "mlx-embeddings>=0.1.0",
+    "mlx>=0.20.0",
+    "mlx-embeddings>=0.2.0",
+    "mlx-vis>=0.1.0",
+    "mlx-hdbscan @ git+ssh://git@git.lcn.tw:2222/felix/mlx-hdbscan.git@main",
+    "mlx-ctfidf @ git+ssh://git@git.lcn.tw:2222/felix/mlx-ctfidf.git@main",
+    "mlx-outlier @ git+ssh://git@git.lcn.tw:2222/felix/mlx-outlier.git@main",
+    "mlx-keybert @ git+ssh://git@git.lcn.tw:2222/felix/mlx-keybert.git@main",
+    "bertopic>=0.16.0",
+    "numpy>=1.24",
+    "scipy>=1.10",
 ]
 
-[project.optional-dependencies]
-viz = ["plotly"]        # for mlx_dtm.DynamicTopics.plot_trends
-dev = ["pytest>=7", "scipy"]
-
-[project.urls]
-Homepage = "https://github.com/mlx-bertopic/mlx-bertopic"
-Repository = "https://github.com/mlx-bertopic/mlx-bertopic"
-Issues = "https://github.com/mlx-bertopic/mlx-bertopic/issues"
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["mlx_*"]
+include = ["mlx_bertopic*"]

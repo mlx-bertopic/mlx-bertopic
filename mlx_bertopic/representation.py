@@ -79,7 +79,26 @@ def _extract_topics_impl(backend, topic_model, documents, c_tf_idf, topics):
         )
         return topics
 
-    word_embeddings = embedding_model.embed(vocab)
+    # Embed vocab in batches to avoid OOM on large vocabularies.
+    # MlxEmbedder already batches internally, but other backends may not.
+    _VOCAB_WARN_THRESHOLD = 10000
+    _EMBED_BATCH_SIZE = 2048
+
+    if len(vocab) > _VOCAB_WARN_THRESHOLD:
+        warnings.warn(
+            f'MlxKeyBERT: embedding {len(vocab):,} vocab words — may be slow',
+            UserWarning,
+            stacklevel=3,
+        )
+
+    if len(vocab) <= _EMBED_BATCH_SIZE:
+        word_embeddings = embedding_model.embed(vocab)
+    else:
+        import numpy as _np
+        batches = []
+        for i in range(0, len(vocab), _EMBED_BATCH_SIZE):
+            batches.append(embedding_model.embed(vocab[i:i + _EMBED_BATCH_SIZE]))
+        word_embeddings = _np.vstack(batches)
 
     topic_ids = [t for t in set(topic_assignments) if t >= 0]
 
