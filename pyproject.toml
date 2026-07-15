@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mlx-bertopic"
+version = "0.3.0"
+description = "BERTopic backends for Apple Silicon — MLX (Metal) GPU topic modeling"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Felix Lin"}]
+keywords = ["bertopic", "topic-modeling", "mlx", "apple-silicon", "metal", "gpu", "nlp"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "mlx>=0.21",
+    "numpy",
+    "scipy",
+    "scikit-learn",
+    "pandas",
+    "bertopic>=0.17.4",
+    "hdbscan>=0.8.33",
+    "mlx-vis>=0.7.0",
+    "mlx-embeddings>=0.1.0",
+]
+
+[project.optional-dependencies]
+viz = ["plotly"]        # for mlx_dtm.DynamicTopics.plot_trends
+dev = ["pytest>=7", "scipy"]
+
+[project.urls]
+Homepage = "https://github.com/mlx-bertopic/mlx-bertopic"
+Repository = "https://github.com/mlx-bertopic/mlx-bertopic"
+Issues = "https://github.com/mlx-bertopic/mlx-bertopic/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mlx_*"]
