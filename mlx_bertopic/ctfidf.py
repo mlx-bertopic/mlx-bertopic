@@ -78,6 +78,27 @@ class MlxCTFIDF:
         result = tf * idf
         return result.astype(np.float32)
 
+    @property
+    def _idf_diag(self):
+        """BERTopic save compatibility: expose IDF as sparse diagonal matrix.
+
+        BERTopic's save_ctfidf() accesses `ctfidf_model._idf_diag.data` to
+        serialize the IDF vector. We construct a sparse diagonal on the fly
+        from our internal `_idf_np` array.
+        """
+        if self._idf_np is not None:
+            return sp.diags(self._idf_np.ravel())
+        # Fallback: try to get from the MLX transformer
+        if hasattr(self._transformer, '_idf'):
+            idf = self._transformer._idf
+            if hasattr(idf, 'tolist'):
+                idf_np = np.array(idf.tolist(), dtype=np.float32)
+            else:
+                idf_np = np.asarray(idf, dtype=np.float32)
+            return sp.diags(idf_np.ravel())
+        # Empty fallback
+        return sp.diags([0.0])
+
     def fit(self, X, multiplier=None):
         """Fit c-TF-IDF. Matches BERTopic's ClassTfidfTransformer.fit() signature.
 
@@ -125,6 +146,13 @@ class MlxCTFIDF:
             else:
                 X_dense = np.asarray(X, dtype=np.float32)
             self._transformer.fit(X_dense)
+            # Populate _idf_np for save compatibility
+            if hasattr(self._transformer, '_idf'):
+                idf = self._transformer._idf
+                if hasattr(idf, 'tolist'):
+                    self._idf_np = np.array(idf.tolist(), dtype=np.float32)
+                else:
+                    self._idf_np = np.asarray(idf, dtype=np.float32)
 
         return self
 

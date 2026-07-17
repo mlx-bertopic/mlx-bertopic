@@ -106,16 +106,20 @@ class TestCTFIDFParity:
         assert ref_result.shape == mlx_result.shape, f"Shape mismatch: {ref_result.shape} vs {mlx_result.shape}"
 
         # Convert to dense for comparison
-        ref_dense = ref_result.toarray().astype(np.float32)
-        mlx_dense = mlx_result.toarray().astype(np.float32)
+        ref_dense = ref_result.toarray().astype(np.float32).ravel()
+        mlx_dense = mlx_result.toarray().astype(np.float32).ravel()
 
         # Zero out NaN/inf for comparison
         ref_dense = np.nan_to_num(ref_dense, nan=0.0, posinf=0.0, neginf=0.0)
         mlx_dense = np.nan_to_num(mlx_dense, nan=0.0, posinf=0.0, neginf=0.0)
 
-        # rtol=1e-3 because float32 vs float64 paths may differ slightly
-        np.testing.assert_allclose(
-            mlx_dense, ref_dense, rtol=1e-3, atol=1e-5,
-            err_msg=f"MlxCTFIDF != ClassTfidfTransformer "
-                    f"(reduce={reduce_frequent_words}, bm25={bm25_weighting})"
+        # Manual tolerance check (avoids numpy assert_allclose bug on Python 3.14)
+        abs_diff = np.abs(mlx_dense - ref_dense)
+        tol = 1e-5 + 1e-3 * np.abs(ref_dense)
+        violations = abs_diff > tol
+        n_bad = int(violations.sum())
+        assert n_bad == 0, (
+            f"MlxCTFIDF != ClassTfidfTransformer "
+            f"(reduce={reduce_frequent_words}, bm25={bm25_weighting}): "
+            f"{n_bad} elements exceed tolerance, max_diff={abs_diff.max():.2e}"
         )
