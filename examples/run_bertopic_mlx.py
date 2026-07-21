@@ -1,6 +1,6 @@
-#!/usr/bin/env python3.11
+#!/usr/bin/env python3
 """
-End-to-end BERTopic on Apple Silicon — MLX pipeline (v0.3.0).
+End-to-end BERTopic on Apple Silicon — MLX pipeline (v0.5.0).
 
 Runs the full BERTopic stack:
   - Embedding: mlx-embeddings (Metal GPU)

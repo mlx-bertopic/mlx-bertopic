@@ -1,5 +1,9 @@
 __pycache__/
 *.egg-info/
+.DS_Store
+dist/
+build/
+*.pyc
 dist/
 build/
 .pytest_cache/
