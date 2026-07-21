@@ -1,6 +1,6 @@
 [project]
 name = "mlx-bertopic"
-version = "0.4.0"
+version = "0.5.0"
 description = "BERTopic backends for Apple Silicon (MLX Metal GPU)"
 requires-python = ">=3.10"
 readme = "README.md"
@@ -8,7 +8,7 @@ license = {text = "MIT"}
 dependencies = [
     "mlx>=0.20.0",
     "mlx-embeddings>=0.2.0",
-    "mlx-vis>=0.1.0",
+    "mlx-vis>=0.7.0",
     "mlx-hdbscan @ git+ssh://git@git.lcn.tw:2222/felix/mlx-hdbscan.git@main",
     "mlx-ctfidf @ git+ssh://git@git.lcn.tw:2222/felix/mlx-ctfidf.git@main",
     "mlx-outlier @ git+ssh://git@git.lcn.tw:2222/felix/mlx-outlier.git@main",

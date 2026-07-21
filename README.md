@@ -28,23 +28,43 @@ This is a monorepo; `pip install mlx-bertopic` installs all of them.
 
 ## Where MLX (Metal) wins
 
-Preliminary, measured on M4 Max (see `benchmarks/` for the methodology and full
-tables; reproducible benchmark script is a tracked roadmap item):
+Benchmarked on M4 Max (128 GB unified memory), 214,515 documents × 4,096
+dimensions. Full methodology and raw data in `benchmarks/`.
 
-| Stage | MLX (Metal) vs CPU | Verdict |
-|---|---|---|
-| Embedding | ~16× faster | ✅ must use MLX |
-| UMAP | ~12× faster | ✅ must use MLX |
-| HDBSCAN pairwise-distance + MST | 45–135× faster at 5K–20K points | ✅ large-scale |
-| HDBSCAN cluster extraction (tree) | no GPU benefit (O(n) pointer-chasing) | ❌ keep on CPU |
-| c-TF-IDF | crossover ≈ 100 topics × 50K vocab | ⚠️ scale-dependent |
+| Stage | MLX (Metal) | CPU | Speedup | Notes |
+|---|---|---|---|---|
+| UMAP (5D + 2D) | 63s | 1,911s | **~30×** | NNDescent on GPU; bandwidth-bound on CPU |
+| HDBSCAN (distance + MST) | — | — | 45–135× at 5K–20K | O(n²) pairwise on GPU |
+| HDBSCAN (tree extraction) | — | — | no benefit | O(n) pointer-chasing; keep on CPU |
+| c-TF-IDF | — | — | scale-dependent | crossover ≈ 100 topics × 50K vocab |
+| **Full pipeline** | **79s** | **1,944s** | **24.6×** | end-to-end, single machine |
 
-**Key insight:** HDBSCAN's cluster extraction is an inherently sequential tree
-traversal — it belongs on the CPU. The GPU win is concentrated in the O(n²)
-pairwise-distance + MST stage. A pure-GPU HDBSCAN that cut corners (0%
-agreement with the reference) is documented in the research notes as a
-cautionary tale; the shipped hybrid (GPU distance+MST, CPU extraction) matches
-the reference implementation.
+On the same data, Intel Xeon servers (4–6 core, DDR4) take **89 minutes**
+single-threaded — 67× slower than MLX. Multi-threading on low-bandwidth
+hardware can be *counterproductive* (see `benchmarks/RESULTS.md`).
+
+## Known Issues & Workarounds
+
+### mlx-vis UMAP embedding divergence (>100K high-dim inputs)
+
+`mlx-vis` UMAP has a numerical stability issue on large datasets (>100K points)
+with high-dimensional embeddings (>1000d). Hub nodes can diverge due to
+gradient accumulation in batch scatter-add operations.
+
+**Symptoms**: HDBSCAN finds only 1 giant cluster; UMAP coordinate range expands
+to ±hundreds instead of the normal ±15.
+
+**This repo includes a workaround** in `MlxUMAPWrapper`: post-hoc L2 norm
+clipping (max_norm=15) + hard coordinate bound (±20). This is transparent —
+no user action required.
+
+For the full upstream fix (clip ordering + per-epoch projection), see
+`patches/mlx_vis_umap_stability.md`. A PR to `hanxiao/mlx-vis` is pending.
+
+**Verified on**:
+- 164K × 4096d: 133 topics (was 21 pre-fix), 24x faster than CPU
+- 100K × 4096d: 132 topics (was 83 pre-fix)
+- 32K and below: unaffected
 
 ## Install
 
