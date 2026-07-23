@@ -209,7 +209,328 @@ def generate_all(
         fig.write_html(str(out / "neural_dtm_drift.html"))
         print(f"  ✓ neural_dtm_drift.html")
 
+    # ── 8. Word Clouds (HTML/SVG with web fonts) ──────
+    _generate_word_clouds(kw, topic_sizes, out, title_prefix, top_n=12)
+
+    # ── 9. Intertopic Distance Map ────────────────────
+    _generate_intertopic_map(kw, topic_sizes, umap_2d, labels, out, title_prefix)
+
+    # ── 10. Topic Centroid Trajectory (NeuralDTM) ─────
+    if neural_dtm is not None and umap_2d:
+        _generate_centroid_trajectory(neural_dtm, kw, out, title_prefix)
+
+    # ── 11. Temporal Heatmap ──────────────────────────
+    if "post_date" in df.columns:
+        _generate_temporal_heatmap(df, labels, kw, topic_sizes, out, title_prefix)
+
+    # ── 12. Topic Network Graph ───────────────────────
+    _generate_topic_network(kw, topic_sizes, out, title_prefix)
+
+    # ── 13. Representative Documents ──────────────────
+    _generate_representative_docs(df, labels, kw, topic_sizes, out, title_prefix)
+
     print(f"\nAll visualizations saved to {out}/")
+
+
+def _generate_word_clouds(kw, topic_sizes, out, title_prefix, top_n=12):
+    """Generate word cloud HTML using inline SVG with Google Fonts."""
+    import random
+
+    # Google Fonts CSS for CJK
+    font_css = '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">'
+
+    top_topics = [tid for tid, _ in topic_sizes.most_common(top_n)]
+
+    html_parts = [f"""<!DOCTYPE html><html><head><meta charset="utf-8">
+{font_css}
+<style>
+body {{ font-family: 'Noto Sans TC', sans-serif; margin: 20px; background: #1a1a2e; color: #eee; }}
+.cloud-grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }}
+.cloud-box {{ background: #16213e; border-radius: 12px; padding: 20px; min-height: 200px; }}
+.cloud-box h3 {{ margin: 0 0 10px; font-size: 14px; color: #a8d8ea; }}
+.word {{ display: inline-block; margin: 3px 5px; transition: transform 0.2s; }}
+.word:hover {{ transform: scale(1.2); }}
+</style></head><body>
+<h1>{title_prefix}Topic Word Clouds (Top {top_n})</h1>
+<div class="cloud-grid">"""]
+
+    colors = ["#ff6b6b", "#feca57", "#48dbfb", "#ff9ff3", "#54a0ff", "#5f27cd",
+              "#01a3a4", "#f368e0", "#ee5a24", "#009432", "#0652DD", "#9980FA"]
+
+    for i, tid in enumerate(top_topics):
+        words = kw.get(str(tid), [])[:15]
+        if not words:
+            continue
+        max_score = max(s for _, s in words) if words else 1
+        color = colors[i % len(colors)]
+
+        html_parts.append(f'<div class="cloud-box"><h3>T{tid} ({topic_sizes[tid]:,} sentences)</h3>')
+        for w, score in words:
+            size = 14 + int((score / max_score) * 28)
+            opacity = 0.5 + (score / max_score) * 0.5
+            html_parts.append(
+                f'<span class="word" style="font-size:{size}px; color:{color}; opacity:{opacity}; '
+                f'font-weight:{700 if score/max_score > 0.5 else 400}">{w}</span>'
+            )
+        html_parts.append('</div>')
+
+    html_parts.append('</div></body></html>')
+    (out / "word_clouds.html").write_text("\n".join(html_parts), encoding="utf-8")
+    print(f"  ✓ word_clouds.html")
+
+
+def _generate_intertopic_map(kw, topic_sizes, umap_2d_path, labels, out, title_prefix):
+    """Intertopic distance map: bubble chart with topic positions and sizes."""
+    import plotly.graph_objects as go
+
+    top30 = [tid for tid, _ in topic_sizes.most_common(30)]
+
+    if umap_2d_path:
+        coords = np.load(umap_2d_path)
+        # Compute topic centroids in 2D space
+        topic_x, topic_y, topic_size, topic_text = [], [], [], []
+        for tid in top30:
+            mask = labels == tid
+            if mask.sum() == 0:
+                continue
+            cx = coords[mask, 0].mean()
+            cy = coords[mask, 1].mean()
+            topic_x.append(cx)
+            topic_y.append(cy)
+            topic_size.append(topic_sizes[tid])
+            words = kw.get(str(tid), [])[:3]
+            topic_text.append(f"T{tid}: {' '.join(w for w,_ in words)}<br>({topic_sizes[tid]:,})")
+
+        # Scale bubble size
+        max_size = max(topic_size)
+        sizes = [20 + (s / max_size) * 60 for s in topic_size]
+
+        fig = go.Figure(go.Scatter(
+            x=topic_x, y=topic_y, mode="markers+text",
+            marker=dict(size=sizes, opacity=0.6, color=list(range(len(top30))),
+                       colorscale="Viridis", showscale=False),
+            text=[f"T{tid}" for tid in top30[:len(topic_x)]],
+            textposition="middle center",
+            textfont=dict(size=9),
+            hovertext=topic_text,
+            hoverinfo="text",
+        ))
+        fig.update_layout(
+            title=f"{title_prefix}Intertopic Distance Map (Top 30)",
+            width=1000, height=800,
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        )
+        fig.write_html(str(out / "intertopic_map.html"))
+        print(f"  ✓ intertopic_map.html")
+
+
+def _generate_centroid_trajectory(neural_dtm, kw, out, title_prefix):
+    """2D trajectory of topic centroids over time (from NeuralDTM)."""
+    import plotly.graph_objects as go
+
+    top5 = neural_dtm.top_drifting_topics(5)
+    if not top5:
+        return
+
+    # We need 2D projections of centroids — use PCA on all centroids
+    all_centroids = []
+    topic_ids = []
+    for tid, _ in top5:
+        c = neural_dtm.get_centroids(tid)
+        all_centroids.append(c)
+        topic_ids.append(tid)
+
+    stacked = np.vstack(all_centroids)  # (5 * n_bins, embed_dim)
+    # PCA to 2D
+    mean = stacked.mean(axis=0)
+    centered = stacked - mean
+    U, S, Vt = np.linalg.svd(centered, full_matrices=False)
+    proj_2d = centered @ Vt[:2].T  # (5*n_bins, 2)
+
+    n_bins = neural_dtm.n_bins
+    bin_labels = neural_dtm._bin_labels
+
+    fig = go.Figure()
+    colors = ["#ff6b6b", "#48dbfb", "#feca57", "#ff9ff3", "#54a0ff"]
+
+    for i, (tid, _) in enumerate(top5):
+        start = i * n_bins
+        end = start + n_bins
+        x = proj_2d[start:end, 0]
+        y = proj_2d[start:end, 1]
+        words = kw.get(str(tid), [])[:2]
+        label = f"T{tid}: {' '.join(w for w,_ in words)}"
+
+        # Line trajectory
+        fig.add_trace(go.Scatter(x=x, y=y, mode="lines+markers", name=label,
+                                 line=dict(color=colors[i], width=2),
+                                 marker=dict(size=4)))
+        # Start and end markers
+        fig.add_trace(go.Scatter(x=[x[0]], y=[y[0]], mode="markers",
+                                 marker=dict(size=12, color=colors[i], symbol="circle"),
+                                 name=f"{label} (start)", showlegend=False))
+        fig.add_trace(go.Scatter(x=[x[-1]], y=[y[-1]], mode="markers",
+                                 marker=dict(size=12, color=colors[i], symbol="diamond"),
+                                 name=f"{label} (end)", showlegend=False))
+
+    fig.update_layout(
+        title=f"{title_prefix}Topic Centroid Trajectories (PCA 2D, NeuralDTM)",
+        xaxis_title="PC1", yaxis_title="PC2", width=900, height=700,
+        legend=dict(font=dict(size=10)),
+    )
+    fig.write_html(str(out / "centroid_trajectory.html"))
+    print(f"  ✓ centroid_trajectory.html")
+
+
+def _generate_temporal_heatmap(df, labels, kw, topic_sizes, out, title_prefix):
+    """Heatmap: rows=topics, cols=years, color=sentence count."""
+    import plotly.express as px
+
+    df["year"] = pd.to_datetime(df["post_date"]).dt.year
+    years = sorted(df["year"].unique())
+    top20 = [tid for tid, _ in topic_sizes.most_common(20)]
+
+    matrix = np.zeros((len(top20), len(years)))
+    for i, tid in enumerate(top20):
+        for j, y in enumerate(years):
+            matrix[i, j] = ((df["year"] == y) & (labels == tid)).sum()
+
+    y_labels = [f"T{tid}: {' '.join(w for w,_ in kw.get(str(tid),[])[:2])}" for tid in top20]
+
+    fig = px.imshow(matrix, x=[str(y) for y in years], y=y_labels,
+                    title=f"{title_prefix}Topic × Year Heatmap (Top 20)",
+                    color_continuous_scale="YlOrRd", width=1000, height=700,
+                    aspect="auto")
+    fig.update_layout(margin=dict(l=250))
+    fig.write_html(str(out / "temporal_heatmap.html"))
+    print(f"  ✓ temporal_heatmap.html")
+
+
+def _generate_topic_network(kw, topic_sizes, out, title_prefix):
+    """Force-directed network graph based on keyword overlap."""
+    import plotly.graph_objects as go
+    from sklearn.metrics.pairwise import cosine_similarity
+
+    top30 = [tid for tid, _ in topic_sizes.most_common(30)]
+
+    # Build word vectors
+    all_words = set()
+    for tid in top30:
+        for w, _ in kw.get(str(tid), [])[:15]:
+            all_words.add(w)
+    word_list = sorted(all_words)
+    word_idx = {w: i for i, w in enumerate(word_list)}
+
+    mat = np.zeros((len(top30), len(word_list)))
+    for i, tid in enumerate(top30):
+        for w, score in kw.get(str(tid), [])[:15]:
+            if w in word_idx:
+                mat[i, word_idx[w]] = score
+
+    sim = cosine_similarity(mat)
+
+    # Simple force-directed layout (spring embedding approximation)
+    np.random.seed(42)
+    pos = np.random.randn(len(top30), 2) * 2
+    for _ in range(100):
+        for i in range(len(top30)):
+            for j in range(i + 1, len(top30)):
+                dx = pos[i] - pos[j]
+                dist = np.sqrt((dx ** 2).sum()) + 0.01
+                # Repulsion
+                repulsion = dx / (dist ** 2) * 0.1
+                pos[i] += repulsion
+                pos[j] -= repulsion
+                # Attraction (if similar)
+                if sim[i, j] > 0.1:
+                    attraction = -dx * sim[i, j] * 0.05
+                    pos[i] += attraction
+                    pos[j] -= attraction
+
+    # Draw edges (only strong connections)
+    edge_x, edge_y = [], []
+    for i in range(len(top30)):
+        for j in range(i + 1, len(top30)):
+            if sim[i, j] > 0.15:
+                edge_x.extend([pos[i, 0], pos[j, 0], None])
+                edge_y.extend([pos[i, 1], pos[j, 1], None])
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=edge_x, y=edge_y, mode="lines",
+                             line=dict(width=0.5, color="#888"), hoverinfo="none"))
+
+    sizes = [15 + (topic_sizes[tid] / max(topic_sizes.values())) * 40 for tid in top30]
+    texts = [f"T{tid}: {' '.join(w for w,_ in kw.get(str(tid),[])[:2])}" for tid in top30]
+    hover = [f"T{tid}: {' | '.join(w for w,_ in kw.get(str(tid),[])[:4])}<br>({topic_sizes[tid]:,})" for tid in top30]
+
+    fig.add_trace(go.Scatter(
+        x=pos[:, 0], y=pos[:, 1], mode="markers+text",
+        marker=dict(size=sizes, color=list(range(len(top30))), colorscale="Turbo", opacity=0.8),
+        text=texts, textposition="top center", textfont=dict(size=8),
+        hovertext=hover, hoverinfo="text",
+    ))
+    fig.update_layout(
+        title=f"{title_prefix}Topic Network (Top 30, edges = similarity > 0.15)",
+        width=1000, height=800, showlegend=False,
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+    )
+    fig.write_html(str(out / "topic_network.html"))
+    print(f"  ✓ topic_network.html")
+
+
+def _generate_representative_docs(df, labels, kw, topic_sizes, out, title_prefix):
+    """HTML page with representative documents per topic."""
+    font_css = '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">'
+
+    top20 = [tid for tid, _ in topic_sizes.most_common(20)]
+
+    html_parts = [f"""<!DOCTYPE html><html><head><meta charset="utf-8">
+{font_css}
+<style>
+body {{ font-family: 'Noto Sans TC', sans-serif; margin: 20px; background: #f5f5f5; color: #333; max-width: 1000px; margin: 0 auto; padding: 20px; }}
+h1 {{ color: #2c3e50; }}
+.topic-section {{ background: white; border-radius: 8px; padding: 20px; margin: 15px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+.topic-header {{ color: #2980b9; margin: 0 0 10px; font-size: 18px; }}
+.topic-keywords {{ color: #7f8c8d; font-size: 13px; margin-bottom: 10px; }}
+.doc {{ padding: 8px 12px; margin: 5px 0; background: #ecf0f1; border-radius: 4px; font-size: 14px; line-height: 1.6; }}
+.doc-meta {{ font-size: 11px; color: #95a5a6; }}
+</style></head><body>
+<h1>{title_prefix}Representative Documents (Top 20 Topics)</h1>"""]
+
+    sent_col = "sentence" if "sentence" in df.columns else "docs_filtered"
+
+    for tid in top20:
+        words = kw.get(str(tid), [])[:6]
+        keywords_str = " · ".join(w for w, _ in words)
+        topic_docs = df[labels == tid]
+
+        # Pick representative docs: longest sentences (more informative)
+        if sent_col in topic_docs.columns:
+            topic_docs_sorted = topic_docs.assign(
+                _len=topic_docs[sent_col].str.len()
+            ).nlargest(5, "_len")
+            rep = topic_docs_sorted
+        else:
+            rep = topic_docs.head(5)
+
+        html_parts.append(f'<div class="topic-section">')
+        html_parts.append(f'<h2 class="topic-header">Topic {tid} ({topic_sizes[tid]:,} sentences)</h2>')
+        html_parts.append(f'<div class="topic-keywords">{keywords_str}</div>')
+
+        for _, row in rep.iterrows():
+            text = row.get(sent_col, "")[:200]
+            date = str(row.get("post_date", ""))[:10]
+            html_parts.append(f'<div class="doc">{text}</div>')
+            if date:
+                html_parts.append(f'<div class="doc-meta">{date}</div>')
+
+        html_parts.append('</div>')
+
+    html_parts.append('</body></html>')
+    (out / "representative_docs.html").write_text("\n".join(html_parts), encoding="utf-8")
+    print(f"  ✓ representative_docs.html")
 
 
 # Alias for lazy import from mlx_bertopic
