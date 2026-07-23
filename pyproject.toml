@@ -1,6 +1,6 @@
 [project]
 name = "mlx-bertopic"
-version = "0.5.0"
+version = "0.6.0"
 description = "BERTopic backends for Apple Silicon (MLX Metal GPU)"
 requires-python = ">=3.10"
 readme = "README.md"

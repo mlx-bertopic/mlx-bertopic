@@ -23,7 +23,7 @@ This is a monorepo; `pip install mlx-bertopic` installs all of them.
 | `mlx_hdbscan` | HDBSCAN clustering (Metal distance + MST) | hdbscan 0.8.x |
 | `mlx_keybert` | KeyBERT-inspired + MMR keyword selection | KeyBERT |
 | `mlx_lda` | Latent Dirichlet Allocation (variational EM) | scikit-learn LDA / Blei 2003 |
-| `mlx_dtm` | LSTM-based dynamic topic modeling | BERTopic topics-over-time (concept) |
+| `mlx_dtm` | Dynamic topic modeling (LSTM smoother + NeuralDTM) | BERTopic topics-over-time (concept) |
 | `mlx_outlier` | BERTopic outlier reduction | BERTopic outlier strategies |
 
 ## Where MLX (Metal) wins
@@ -102,6 +102,28 @@ Individual modules can also be used directly, e.g.:
 from mlx_ctfidf import CTFIDFTransformer      # c-TF-IDF aligned to BERTopic
 from mlx_hdbscan import HDBSCAN               # HDBSCAN aligned to the reference
 from mlx_lda import LDA                       # variational-EM LDA
+from mlx_dtm import NeuralDTM                 # embedding-space semantic drift
+```
+
+### NeuralDTM: Track topic semantic drift over time
+
+```python
+from mlx_dtm import NeuralDTM
+
+dtm = NeuralDTM(n_bins=20, smooth=True)
+dtm.fit(embeddings, topics, timestamps)
+
+# Which topics drifted most?
+dtm.top_drifting_topics(10)
+
+# When did a topic shift sharply?
+dtm.changepoints(topic_id=3)
+
+# Keywords per time bin (needs vocab embeddings)
+dtm.keywords_over_time(topic_id=3, vocab_embeddings, vocab_words)
+
+# Tidy DataFrame for plotting
+dtm.drift_dataframe()
 ```
 
 ## Alignment contract (how we stay in sync with upstream)

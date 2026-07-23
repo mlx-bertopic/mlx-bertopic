@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.6.0 (2026-07-23)
+
+### Added
+
+- **`NeuralDTM`**: Contextual embedding-based dynamic topic modeling.
+  Tracks topic centroid drift in embedding space over time. Features:
+  - Per-topic temporal centroid computation with interpolation
+  - Cosine drift measurement between consecutive time bins
+  - Optional LSTM smoothing of centroid trajectories (PCA-projected)
+  - `keywords_over_time()`: nearest vocab words to temporal centroid
+  - `changepoints()`: detect sharp semantic shifts per topic
+  - `top_drifting_topics()`: rank topics by total semantic drift
+  - `drift_dataframe()`: tidy output for visualization
+
+  Conceptually different from Blei DTM (random-walk on word distributions):
+  works directly in pre-computed embedding space. Compatible with any
+  embedding model (qwen3, BGE, OpenAI, etc.).
+
+### Changed
+
+- `mlx_dtm` bumped to 0.2.0; exports `NeuralDTM` alongside `DynamicTopics`.
+
 ## 0.5.0 (2026-07-21)
 
 ### Fixed
