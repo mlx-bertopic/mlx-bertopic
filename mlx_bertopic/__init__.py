@@ -45,6 +45,7 @@ _LAZY = {
     "MlxMMR": "mlx_bertopic.representation",
     "reduce_outliers_embeddings": "mlx_bertopic.outlier",
     "reduce_outliers_ctfidf": "mlx_bertopic.outlier",
+    "generate_all_viz": "mlx_bertopic.viz",
 }
 
 __all__ = list(_LAZY) + ["__version__"]
