@@ -1,6 +1,11 @@
-"""mlx-dtm: LSTM-based Dynamic Topic Modeling on Apple Silicon."""
+"""mlx-dtm: Dynamic Topic Modeling on Apple Silicon.
 
-__version__ = "0.1.0"
+Two approaches:
+  - DynamicTopics: LSTM-based proportion smoothing (existing)
+  - NeuralDTM: Contextual embedding-based semantic drift tracking (new)
+"""
+
+__version__ = "0.2.0"
 
 import mlx.core as mx
 import mlx.nn as nn
@@ -250,3 +255,7 @@ class DynamicTopics:
                       title="Dynamic Topic Trends (LSTM smoothed)",
                       groupnorm="percent")
         return fig
+
+from mlx_dtm.neural_dtm import NeuralDTM  # noqa: E402
+
+__all__ = ["DynamicTopics", "TopicLSTM", "NeuralDTM"]
