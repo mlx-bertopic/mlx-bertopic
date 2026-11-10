@@ -37,6 +37,7 @@ class MlxUMAPWrapper:
     def __init__(self, **kwargs):
         from mlx_vis import UMAP as MlxUMAP
         self._umap = MlxUMAP(**kwargs)
+        self._fitted_X: np.ndarray | None = None
         self._fitted_embedding: np.ndarray | None = None
 
     def _stabilize(self, embedding: np.ndarray) -> np.ndarray:
@@ -59,6 +60,7 @@ class MlxUMAPWrapper:
 
     def fit(self, X, y=None):
         # y is ignored — mlx-vis UMAP is unsupervised only
+        self._fitted_X = X
         self._fitted_embedding = self._umap.fit_transform(X)
         self._fitted_embedding = self._stabilize(self._fitted_embedding)
         return self
@@ -68,21 +70,26 @@ class MlxUMAPWrapper:
         return self._fitted_embedding
 
     def transform(self, X):
-        """Return the fitted embedding if the same data is passed.
+        """Return the fitted embedding when the fitted data is passed.
 
         mlx-vis UMAP does not implement an incremental ``transform`` for new
-        data. BERTopic's ``fit_transform`` calls ``fit`` followed by
-        ``transform`` on the same training set, so we return the cached
-        ``_fitted_embedding``. For genuinely new data, use ``fit_transform`` on
-        the combined dataset.
+        data, and re-fitting on new data yields coordinates inconsistent with
+        the original embedding — so new data raises instead of silently
+        returning wrong results.
+
+        BERTopic's ``fit_transform`` calls ``fit`` followed by ``transform`` on
+        the same training set, so that call is served from the cache. To embed
+        new points together with existing ones, call ``fit_transform`` on the
+        combined dataset.
         """
         if self._fitted_embedding is None:
             raise NotImplementedError(
                 "MlxUMAPWrapper has not been fitted yet; call fit_transform first."
             )
-        if X.shape[0] != self._fitted_embedding.shape[0]:
-            raise NotImplementedError(
-                "mlx-vis UMAP does not support incremental transform on new data; "
-                "use fit_transform on the combined dataset instead."
-            )
-        return self._fitted_embedding
+        same_shape = np.shape(X) == np.shape(self._fitted_X)
+        if same_shape and (X is self._fitted_X or np.array_equal(X, self._fitted_X)):
+            return self._fitted_embedding
+        raise NotImplementedError(
+            "mlx-vis UMAP does not support incremental transform on new data; "
+            "use fit_transform on the combined dataset instead."
+        )

@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.6.1 (2026-11-10)
+
+### Fixed
+
+- **`MlxUMAPWrapper`: BERTopic >= 0.17 `fit()` → `transform()` compatibility**.
+  BERTopic 0.17 calls `umap_model.fit(embeddings)` and then
+  `umap_model.transform(embeddings)` on the same array; `transform()` used to
+  raise `NotImplementedError` for every input, so `BERTopic.fit_transform()`
+  failed outright. `fit()` now caches the stabilized embedding (it previously
+  computed and discarded it) and `fit_transform()` returns it. `transform()`
+  serves that cache only when the fitted data is passed (identity or value
+  equality); a different array with the same row count would otherwise get
+  silently wrong coordinates, so it still raises. Covered by
+  `tests/test_umap_transform.py`.
+- **`MlxCTFIDF` save/load**: `_idf_diag` is stored as a CSR diagonal (built at
+  fit time) instead of a `sp.diags` property, so `_idf_diag.data` is a 1-D
+  vector and `BERTopic.load()` can reconstruct it.
+
+### Changed
+
+- `pyproject.toml`: version bump to 0.6.1; `mlx-embeddings>=0.1.0` (0.2.0 is
+  not on PyPI).
+
 ## 0.6.0 (2026-07-23)
 
 ### Added
