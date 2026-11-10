@@ -1,31 +1,39 @@
 """MlxKeyBERT / MlxMMR — BERTopic representation_model backends (MLX Metal GPU).
 
-Wraps mlx-keybert to match BERTopic's BaseRepresentation interface.
+Subclasses of ``bertopic.representation.BaseRepresentation`` so that BERTopic
+(>= 0.16, where ``_extract_words_per_topic`` type-checks the instance) accepts
+them as ``representation_model=``.
 """
 import warnings
 
 import numpy as np
+from bertopic.representation import BaseRepresentation
 from mlx_keybert import KeyBERTInspired, MaximalMarginalRelevance
 
 
-def _get_embeddings(topic_model):
-    """Try multiple attribute names to retrieve document embeddings.
+def _get_embeddings(topic_model, documents=None):
+    """Return document embeddings aligned with ``documents`` row order.
 
-    BERTopic has used different attribute names across versions.
-    Returns the embeddings array or None if unavailable.
+    BERTopic >= 0.17 no longer keeps the corpus embeddings on the model, so
+    when nothing is cached we re-embed ``documents['Document']`` through the
+    model's own embedding backend. Returns None if neither route is available.
     """
-    # Try the common attribute names
     for attr in ('_embeddings', 'embeddings_'):
         emb = getattr(topic_model, attr, None)
         if emb is not None:
             return emb
 
-    # Check if embedding_model has cached embeddings
     embedding_model = getattr(topic_model, 'embedding_model', None)
-    if embedding_model is not None:
-        cached = getattr(embedding_model, 'embeddings_', None)
-        if cached is not None:
-            return cached
+    if embedding_model is None or not hasattr(embedding_model, 'embed'):
+        return None
+
+    cached = getattr(embedding_model, 'embeddings_', None)
+    if cached is not None:
+        return cached
+
+    columns = getattr(documents, 'columns', None)
+    if documents is not None and columns is not None and 'Document' in columns:
+        return np.asarray(embedding_model.embed(documents['Document'].tolist()))
 
     return None
 
@@ -43,7 +51,7 @@ def _extract_topics_impl(backend, topic_model, documents, c_tf_idf, topics):
     Returns:
         Updated topics dict with MLX-derived keywords, or original topics on failure.
     """
-    embeddings = _get_embeddings(topic_model)
+    embeddings = _get_embeddings(topic_model, documents)
     if embeddings is None:
         warnings.warn(
             'MlxKeyBERT: no embeddings available, skipping GPU representation',
@@ -59,6 +67,15 @@ def _extract_topics_impl(backend, topic_model, documents, c_tf_idf, topics):
             topic_assignments = np.array(topic_model.topics_)
     else:
         topic_assignments = np.array(topic_model.topics_)
+
+    if len(topic_assignments) != len(embeddings):
+        warnings.warn(
+            f'MlxKeyBERT: {len(topic_assignments)} topic assignments vs '
+            f'{len(embeddings)} embeddings, skipping GPU representation',
+            UserWarning,
+            stacklevel=3,
+        )
+        return topics
 
     if not hasattr(topic_model, 'vectorizer_model') or topic_model.vectorizer_model is None:
         warnings.warn(
@@ -100,7 +117,7 @@ def _extract_topics_impl(backend, topic_model, documents, c_tf_idf, topics):
             batches.append(embedding_model.embed(vocab[i:i + _EMBED_BATCH_SIZE]))
         word_embeddings = _np.vstack(batches)
 
-    topic_ids = [t for t in set(topic_assignments) if t >= 0]
+    topic_ids = [t for t in set(topic_assignments.tolist()) if t >= 0]
 
     result = backend.extract_topics(
         topic_ids=topic_ids,
@@ -117,7 +134,7 @@ def _extract_topics_impl(backend, topic_model, documents, c_tf_idf, topics):
     return updated_topics
 
 
-class MlxKeyBERT:
+class MlxKeyBERT(BaseRepresentation):
     """BERTopic representation_model using KeyBERT-inspired MLX similarity.
 
     Usage:
@@ -125,8 +142,8 @@ class MlxKeyBERT:
     """
 
     def __init__(self, top_n_words: int = 10):
-        self._backend = KeyBERTInspired(top_n_words=top_n_words)
         self.top_n_words = top_n_words
+        self._backend = KeyBERTInspired(top_n_words=top_n_words)
 
     def extract_topics(self, topic_model, documents, c_tf_idf, topics):
         """BERTopic representation_model interface.
@@ -145,7 +162,7 @@ class MlxKeyBERT:
         )
 
 
-class MlxMMR:
+class MlxMMR(BaseRepresentation):
     """BERTopic representation_model using MMR diversity selection (MLX Metal GPU).
 
     Usage:
@@ -153,11 +170,11 @@ class MlxMMR:
     """
 
     def __init__(self, top_n_words: int = 10, diversity: float = 0.3):
+        self.top_n_words = top_n_words
+        self.diversity = diversity
         self._backend = MaximalMarginalRelevance(
             top_n_words=top_n_words, diversity=diversity
         )
-        self.top_n_words = top_n_words
-        self.diversity = diversity
 
     def extract_topics(self, topic_model, documents, c_tf_idf, topics):
         """BERTopic representation_model interface."""

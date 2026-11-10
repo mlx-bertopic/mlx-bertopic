@@ -17,6 +17,14 @@
 - **`MlxCTFIDF` save/load**: `_idf_diag` is stored as a CSR diagonal (built at
   fit time) instead of a `sp.diags` property, so `_idf_diag.data` is a 1-D
   vector and `BERTopic.load()` can reconstruct it.
+- **`MlxKeyBERT` / `MlxMMR` rejected as `representation_model=`**: BERTopic
+  0.17 type-checks `BaseRepresentation` and raised
+  `TypeError: unsupported type MlxKeyBERT for representation_model`. Both are
+  now `bertopic.representation.BaseRepresentation` subclasses. `_get_embeddings()`
+  also re-embeds `documents['Document']` through the model's own embedding
+  backend when no embeddings are cached (0.17 keeps none on the model), instead
+  of warning and returning the untouched c-TF-IDF topics. Covered by
+  `tests/test_representation.py`.
 
 ### Changed
 
