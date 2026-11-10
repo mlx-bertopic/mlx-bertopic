@@ -162,8 +162,31 @@ benchmarks/     # benchmark scripts + research notes
 examples/       # usage scripts
 skills/         # agent skill (SKILL.md playbook, drift-tested)
 METHODOLOGY.md  # research methodology (Apple-Silicon / Metal analysis)
-NOTICES.md      # upstream attributions (BERTopic MIT; hdbscan, sklearn BSD-3)
+NOTICES.md      # upstream attributions + third-party licenses + credits
 ```
+
+## Credits
+
+This repo is mostly other people's work, wrapped for Metal. Thanks to:
+
+- **[mlx-vis](https://github.com/hanxiao/mlx-vis)** (Han Xiao, Apache-2.0) — the
+  Metal UMAP behind `MlxUMAPWrapper` and the `NNDescent` graph used by sparse
+  HDBSCAN. The UMAP stage is ~80% of this pipeline's runtime, and it is fast
+  because of their kernels. `patches/` documents a stability fix for its SGD
+  loop that is proposed upstream.
+- **[mlx-embeddings](https://github.com/Blaizzy/mlx-embeddings)** (Prince
+  Canuma, GPL-3.0) — `MlxEmbedder`. Note the license differs from this package;
+  see `NOTICES.md` for what that means for redistribution.
+- **[BERTopic](https://github.com/MaartenGr/BERTopic)** (Maarten Grootendorst,
+  MIT) — the component decomposition and the interfaces every backend here is
+  aligned to, plus the c-TF-IDF/outlier golden references.
+- **[hdbscan](https://github.com/scikit-learn-contrib/hdbscan)** and
+  **[UMAP](https://github.com/lmcinnes/umap)** (Leland McInnes, BSD-3-Clause) —
+  the reference implementations the parity tests and the SGD fix compare against.
+- **[MLX](https://github.com/ml-explore/mlx)** (Apple ML research, MIT) and
+  **scikit-learn / NumPy / SciPy** developers — framework and reference math.
+
+Full license texts and the per-component alignment table: `NOTICES.md`.
 
 ## License
 

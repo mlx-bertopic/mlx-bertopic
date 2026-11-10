@@ -1,6 +1,9 @@
 """MlxUMAPWrapper — BERTopic UMAP backend for Apple Silicon (MLX Metal GPU).
 
-Wraps mlx-vis UMAP to match the interface BERTopic expects.
+Wraps `mlx_vis.UMAP` — mlx-vis by Han Xiao, Apache-2.0,
+https://github.com/hanxiao/mlx-vis — to match the interface BERTopic expects.
+The wrapper and the stabilization below are original code; mlx-vis is used as a
+library. See NOTICES.md.
 
 NOTE: mlx-vis UMAP has a known embedding divergence bug on datasets >50K
 with high-dimensional (>1000d) inputs. Hub nodes accumulate excessive
@@ -14,7 +17,7 @@ For the proper fix, patch mlx_vis/_umap/umap.py:
   - _sgd_step: change `clip(grad, -4, 4) * alpha` → `clip(grad * alpha, -4, 4)`
   - _optimize: add per-epoch `Y = mx.clip(Y, -20.0, 20.0)` after _sgd_step
 
-See: patches/mlx_vis_umap_stability.md
+See: patches/mlx_vis_umap_stability.md (proposed upstream fix; not applied here)
 """
 
 import numpy as np
