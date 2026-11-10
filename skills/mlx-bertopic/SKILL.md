@@ -35,16 +35,23 @@ BERTopic's `ClassTfidfTransformer`, `mlx_hdbscan` vs Cython `hdbscan`).
 |---|---|
 | OS / hardware | Apple Silicon only (MLX = Metal) |
 | Python | ≥ 3.10 (3.11 verified) |
-| Avoid | macOS system `/usr/bin/python3` (3.9) — no `mlx-embeddings`, and the repo uses 3.10+ syntax |
-| Core deps | `mlx>=0.20`, `mlx-embeddings>=0.1.0`, `mlx-vis>=0.7`, `bertopic>=0.16`, `numpy`, `scipy` |
-| Optional | `hdbscan` (Cython reference), `plotly`, `pandas`, `pyarrow` (viz) |
+| Avoid | macOS system `/usr/bin/python3` (3.9) — no MLX deps, and the repo uses 3.10+ syntax |
+| Core deps | `mlx>=0.20`, `mlx-vis>=0.7`, `bertopic>=0.16`, `numpy`, `scipy` |
+| Extra `[embed]` | `mlx-embeddings>=0.1.0` — **GPL-3.0**, needed only by `MlxEmbedder` |
+| Extra `[viz]` | `plotly`, `pandas`, `pyarrow` |
+| Optional | `hdbscan` (Cython reference, faster below ~10K docs) |
 
 ```bash
-pip install "git+https://github.com/mlx-bertopic/mlx-bertopic.git"
+pip install "git+https://github.com/mlx-bertopic/mlx-bertopic.git[embed,viz]"
 # or from a checkout
 git clone https://github.com/mlx-bertopic/mlx-bertopic.git && cd mlx-bertopic
-python3.11 -m pip install -e .
+python3.11 -m pip install -e ".[embed,viz]"
 ```
+
+`mlx-embeddings` is deliberately not a base dependency (GPL-3.0 vs this package's
+MIT). Without `[embed]`, `MlxEmbedder` raises an `ImportError` naming the install
+command; any object with `embed(documents) -> np.ndarray` works as
+`embedding_model` instead.
 
 A script that lives outside the checkout cannot import the package unless it is
 installed (`pip install -e .`) or `PYTHONPATH=<checkout>` is set — `sys.path[0]`
@@ -215,7 +222,7 @@ best = sim.max(1); match = sim.argmax(1)
 ## 12. Maintaining the repo
 
 ```bash
-python -m pytest tests -q          # expected: 75 passed
+python -m pytest tests -q          # expected: 78 passed
 ```
 
 - `tests/` holds golden/parity tests; a green run after a `bertopic` or
@@ -231,7 +238,7 @@ python -m pytest tests -q          # expected: 75 passed
 |---|---|---|
 | `NotImplementedError: ... incremental transform on new data` | `MlxUMAPWrapper.transform()` only serves the fitted array; `BERTopic.transform(new_docs)` needs a refit | refit on the combined dataset (`fit_transform`) |
 | `TypeError: unsupported type MlxKeyBERT for representation_model` | wrapper was not a `BaseRepresentation` subclass (checkout < 0.6.1) | upgrade, or use the §6 fallbacks |
-| `ModuleNotFoundError: mlx_embeddings` | ran with a Python that has no MLX deps (e.g. macOS system 3.9) | use a 3.11+ interpreter with the deps installed |
+| `ImportError` from `MlxEmbedder` mentioning `mlx-bertopic[embed]` | `mlx-embeddings` is an extra (GPL-3.0), not a base dep | `pip install "mlx-bertopic[embed]"`, or pass your own `embed()` object |
 | `ModuleNotFoundError: mlx_bertopic` | script outside the checkout and package not installed | `pip install -e .` or `PYTHONPATH=<checkout>` |
 | Only 1 giant cluster, UMAP coords at ±hundreds | mlx-vis gradient divergence on >50K × >1000d | already handled by `MlxUMAPWrapper` stabilization (`MAX_NORM=15`, `HARD_CLIP=20`); don't disable it |
 | `Matrix too large for GPU (...)` | c-TF-IDF above 5e8 elements | expected numpy fallback |

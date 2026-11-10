@@ -32,16 +32,17 @@ Aligned to: **BERTopic 0.17.4**, **hdbscan 0.8.x**.
 These are used through their public APIs, not reimplemented. Versions shown are
 the ones this release was tested against; `pyproject.toml` holds the floors.
 
-| Package | Tested | License | Author | Source |
-|---|---|---|---|---|
-| `mlx-vis` | 0.7.0 | **Apache-2.0** | Han Xiao | https://github.com/hanxiao/mlx-vis |
-| `mlx-embeddings` | 0.1.0 | **GPL-3.0** | Prince Canuma | https://github.com/Blaizzy/mlx-embeddings |
-| `mlx` | 0.32.0 | MIT | MLX Contributors | https://github.com/ml-explore/mlx |
-| `bertopic` | 0.17.0 | MIT | Maarten P. Grootendorst | https://github.com/MaartenGr/BERTopic |
-| `hdbscan` | 0.8.40 | BSD-3-Clause | Leland McInnes | https://github.com/scikit-learn-contrib/hdbscan |
-| `scikit-learn` | 1.6.1 | BSD-3-Clause | The scikit-learn developers | https://scikit-learn.org |
-| `numpy` | 2.3.5 | BSD-3-Clause | NumPy Developers | https://numpy.org |
-| `scipy` | 1.17.0 | BSD-3-Clause | SciPy Developers | https://scipy.org |
+| Package | Tested | License | Installed by | Author | Source |
+|---|---|---|---|---|---|
+| `mlx-vis` | 0.7.0 | **Apache-2.0** | base | Han Xiao | https://github.com/hanxiao/mlx-vis |
+| `mlx` | 0.32.0 | MIT | base (via `mlx-vis`) | MLX Contributors | https://github.com/ml-explore/mlx |
+| `bertopic` | 0.17.0 | MIT | base | Maarten P. Grootendorst | https://github.com/MaartenGr/BERTopic |
+| `hdbscan` | 0.8.40 | BSD-3-Clause | base (via `bertopic`) | Leland McInnes | https://github.com/scikit-learn-contrib/hdbscan |
+| `scikit-learn` | 1.6.1 | BSD-3-Clause | base (via `bertopic`) | The scikit-learn developers | https://scikit-learn.org |
+| `numpy` | 2.3.5 | BSD-3-Clause | base | NumPy Developers | https://numpy.org |
+| `scipy` | 1.17.0 | BSD-3-Clause | base | SciPy Developers | https://scipy.org |
+| `mlx-embeddings` | 0.1.0 | **GPL-3.0** | extra `[embed]` | Prince Canuma | https://github.com/Blaizzy/mlx-embeddings |
+| `plotly`, `pandas`, `pyarrow` | 6.0, 2.2, 21+ | MIT/BSD-3/Apache-2.0 | extra `[viz]` | Plotly / pandas / Apache Arrow | https://plotly.com, https://pandas.pydata.org, https://arrow.apache.org |
 
 Where each one is called:
 
@@ -51,11 +52,13 @@ Where each one is called:
   optional convenience.
 - **`mlx-embeddings`** — only inside `mlx_bertopic.embedder.MlxEmbedder`
   (`load()` / `generate()`); every other module runs without it. It is licensed
-  **GPL-3.0**, unlike this package (MIT). Importing it does not relicense this
-  code, but a GPL-3.0 work is present in any environment where `MlxEmbedder` is
-  used or a bundle is redistributed. If that matters for your deployment, pass
-  any object with an `embed(documents) -> np.ndarray` method instead of
-  `MlxEmbedder`, or install `mlx-embeddings` separately and review its terms.
+  **GPL-3.0**, unlike this package (MIT), so it is kept out of the base install
+  and lives in the `[embed]` extra: `pip install "mlx-bertopic[embed]"`.
+  Installing it does not relicense this code, but a GPL-3.0 work is present in
+  any environment where `MlxEmbedder` is used or a bundle is redistributed. If
+  that matters for your deployment, pass any object with an
+  `embed(documents) -> np.ndarray` method instead of `MlxEmbedder`; without the
+  extra, `MlxEmbedder` raises an `ImportError` carrying that install hint.
 - **`bertopic`** — the API contract (base classes, expected model interfaces)
   and the reference for c-TF-IDF/outlier parity tests.
 

@@ -28,8 +28,17 @@
 
 ### Changed
 
-- `pyproject.toml`: version bump to 0.6.1; `mlx-embeddings>=0.1.0` (0.2.0 is
-  not on PyPI).
+- `pyproject.toml`: version bump to 0.6.1.
+- **`mlx-embeddings` moved to the `[embed]` extra.** It is GPL-3.0 while this
+  package is MIT, so it is no longer a base dependency:
+  `pip install "mlx-bertopic[embed]"` (floor relaxed to `>=0.1.0`; 0.2.0 is not
+  on PyPI). `MlxEmbedder` raises an `ImportError` naming that command when the
+  extra is absent; every other module runs without it, and any object with
+  `embed(documents) -> np.ndarray` can be used as `embedding_model` instead.
+  Covered by `tests/test_optional_deps.py`.
+- **`[viz]` extra defined** (it was advertised in the README but missing from
+  `pyproject.toml`, so `pip install "...[viz]"` installed nothing): `plotly`,
+  `pandas`, `pyarrow`.
 
 ## 0.6.0 (2026-07-23)
 

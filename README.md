@@ -70,11 +70,18 @@ For the full upstream fix (clip ordering + per-epoch projection), see
 
 ```bash
 pip install "git+https://github.com/mlx-bertopic/mlx-bertopic.git"
-# optional: viz extras for dynamic-topic plotting
+# MLX embeddings backend (GPL-3.0) — only needed for MlxEmbedder
+pip install "git+https://github.com/mlx-bertopic/mlx-bertopic.git[embed]"
+# HTML reports from mlx_bertopic.viz.generate_all
 pip install "git+https://github.com/mlx-bertopic/mlx-bertopic.git[viz]"
 ```
 
 Apple Silicon only (MLX = Metal). Python ≥ 3.10.
+
+> `mlx-embeddings` is deliberately **not** a base dependency: it is GPL-3.0 while
+> this package is MIT. Without it, `MlxEmbedder` raises an `ImportError` carrying
+> the install hint, and any object with `embed(documents) -> np.ndarray` works as
+> `embedding_model` instead. See `NOTICES.md`.
 
 > Note: depending on `bertopic` transitively pulls PyTorch / sentence-transformers
 > (BERTopic's own requirements). The MLX backends bypass them at runtime, but
