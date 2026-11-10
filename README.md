@@ -80,6 +80,19 @@ Apple Silicon only (MLX = Metal). Python ≥ 3.10.
 > (BERTopic's own requirements). The MLX backends bypass them at runtime, but
 > they are installed for BERTopic's base classes.
 
+## Agent skill
+
+`skills/mlx-bertopic/SKILL.md` is an agent-facing playbook: environment
+requirements, per-module workflows, verified pitfalls and the maintenance loop.
+It is kept in this repo so it moves with the API (`tests/test_skill.py` fails if
+the skill names something that no longer imports).
+
+```bash
+mkdir -p ~/.hermes/skills/mlops
+cp -r skills/mlx-bertopic ~/.hermes/skills/mlops/
+# other harnesses: point their skill directory at skills/mlx-bertopic
+```
+
 ## Quick start
 
 ```python
@@ -147,6 +160,7 @@ mlx_lda/        mlx_dtm/      mlx_outlier/   # the 7 modules
 tests/          # all golden + integration tests
 benchmarks/     # benchmark scripts + research notes
 examples/       # usage scripts
+skills/         # agent skill (SKILL.md playbook, drift-tested)
 METHODOLOGY.md  # research methodology (Apple-Silicon / Metal analysis)
 NOTICES.md      # upstream attributions (BERTopic MIT; hdbscan, sklearn BSD-3)
 ```
