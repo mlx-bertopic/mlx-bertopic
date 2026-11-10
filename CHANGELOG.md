@@ -1,6 +1,21 @@
 # Changelog
 
-## 0.6.1 (2026-11-10)
+## 0.7.0 (2026-11-10)
+
+### Breaking
+
+- **`mlx-embeddings` is no longer a base dependency.** It is GPL-3.0 while this
+  package is MIT, and it is imported only by `MlxEmbedder`, so it now lives in
+  the `[embed]` extra. `pip install mlx-bertopic` alone no longer provides
+  `MlxEmbedder`; migrate with
+
+  ```bash
+  pip install "mlx-bertopic[embed]"
+  ```
+
+  Without the extra, `MlxEmbedder` raises an `ImportError` naming that command,
+  and passing any object with `embed(documents) -> np.ndarray` as
+  `embedding_model` avoids the dependency entirely. No other module is affected.
 
 ### Fixed
 
@@ -28,14 +43,9 @@
 
 ### Changed
 
-- `pyproject.toml`: version bump to 0.6.1.
-- **`mlx-embeddings` moved to the `[embed]` extra.** It is GPL-3.0 while this
-  package is MIT, so it is no longer a base dependency:
-  `pip install "mlx-bertopic[embed]"` (floor relaxed to `>=0.1.0`; 0.2.0 is not
-  on PyPI). `MlxEmbedder` raises an `ImportError` naming that command when the
-  extra is absent; every other module runs without it, and any object with
-  `embed(documents) -> np.ndarray` can be used as `embedding_model` instead.
-  Covered by `tests/test_optional_deps.py`.
+- `pyproject.toml`: version bump to 0.7.0.
+- `mlx-embeddings` floor relaxed to `>=0.1.0` (0.2.0 is not on PyPI); the extra
+  split itself is listed under Breaking.
 - **`[viz]` extra defined** (it was advertised in the README but missing from
   `pyproject.toml`, so `pip install "...[viz]"` installed nothing): `plotly`,
   `pandas`, `pyarrow`.

@@ -87,6 +87,20 @@ Apple Silicon only (MLX = Metal). Python ≥ 3.10.
 > (BERTopic's own requirements). The MLX backends bypass them at runtime, but
 > they are installed for BERTopic's base classes.
 
+### Upgrading from 0.6.x
+
+`mlx-embeddings` moved out of the base install in **0.7.0** (it is GPL-3.0; this
+package is MIT). If you use `MlxEmbedder`, add the extra:
+
+```bash
+pip install -U "git+https://github.com/mlx-bertopic/mlx-bertopic.git[embed]"
+```
+
+Everything else — UMAP, HDBSCAN, c-TF-IDF, KeyBERT/MMR, LDA, NeuralDTM, outlier
+reduction — installs and runs unchanged. 0.7.0 also fixes three breaks against
+BERTopic 0.17 (`umap_model.fit` → `transform`, `representation_model` type
+check, c-TF-IDF save/load); see `CHANGELOG.md`.
+
 ## Agent skill
 
 `skills/mlx-bertopic/SKILL.md` is an agent-facing playbook: environment

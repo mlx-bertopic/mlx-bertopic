@@ -16,7 +16,8 @@ metadata:
 # mlx-bertopic — BERTopic on Apple Silicon (MLX / Metal)
 
 Repository: `github.com/mlx-bertopic/mlx-bertopic` (MIT). Verified on macOS 27.2,
-arm64 (M4 Max), Python 3.11.18, bertopic 0.17.0, mlx 0.29.3.
+arm64 (M4 Max), Python 3.11.18, bertopic 0.17.0, mlx 0.32.0. This skill
+describes **0.7.0**.
 
 Every backend is an independent MLX reimplementation, not a port; each is aligned
 to a pinned upstream reference and guarded by golden tests (`mlx_ctfidf` vs
@@ -129,7 +130,7 @@ from mlx_bertopic import MlxKeyBERT, MlxMMR
 topic_model = BERTopic(..., representation_model=MlxKeyBERT(top_n_words=10))
 ```
 
-On a checkout older than 0.6.1 the `isinstance` check raises
+On a checkout older than 0.7.0 the `isinstance` check raises
 `TypeError: unsupported type MlxKeyBERT for representation_model`; use upstream's
 stage instead (`from bertopic.representation import KeyBERTInspired`), or call the
 MLX extractor standalone after fit:
@@ -237,7 +238,7 @@ python -m pytest tests -q          # expected: 78 passed
 | Symptom | Cause | Action |
 |---|---|---|
 | `NotImplementedError: ... incremental transform on new data` | `MlxUMAPWrapper.transform()` only serves the fitted array; `BERTopic.transform(new_docs)` needs a refit | refit on the combined dataset (`fit_transform`) |
-| `TypeError: unsupported type MlxKeyBERT for representation_model` | wrapper was not a `BaseRepresentation` subclass (checkout < 0.6.1) | upgrade, or use the §6 fallbacks |
+| `TypeError: unsupported type MlxKeyBERT for representation_model` | wrapper was not a `BaseRepresentation` subclass (checkout < 0.7.0) | upgrade, or use the §6 fallbacks |
 | `ImportError` from `MlxEmbedder` mentioning `mlx-bertopic[embed]` | `mlx-embeddings` is an extra (GPL-3.0), not a base dep | `pip install "mlx-bertopic[embed]"`, or pass your own `embed()` object |
 | `ModuleNotFoundError: mlx_bertopic` | script outside the checkout and package not installed | `pip install -e .` or `PYTHONPATH=<checkout>` |
 | Only 1 giant cluster, UMAP coords at ±hundreds | mlx-vis gradient divergence on >50K × >1000d | already handled by `MlxUMAPWrapper` stabilization (`MAX_NORM=15`, `HARD_CLIP=20`); don't disable it |
