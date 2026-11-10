@@ -51,6 +51,10 @@ class NeuralDTM:
         Print progress.
     """
 
+    # Cosine distance between consecutive centroids below this is numerical
+    # noise, not a semantic shift.
+    NOISE_FLOOR = 1e-3
+
     def __init__(
         self,
         n_bins: int = 20,
@@ -271,11 +275,22 @@ class NeuralDTM:
         return total_drift[:top_n]
 
     def changepoints(self, topic_id: int, threshold: float = 2.0) -> list[int]:
-        """Detect time bins where a topic shifts sharply."""
+        """Detect time bins where a topic shifts sharply.
+
+        A bin qualifies when its drift exceeds ``mean + threshold * std`` **and**
+        exceeds ``NOISE_FLOOR``. Without the floor, a topic whose centroids do
+        not move reports numerical noise (1e-7..1e-4 cosine distance) as
+        changepoints, because on an (almost) constant drift series both the mean
+        and the standard deviation collapse and the relative threshold loses its
+        meaning.
+        """
         drift = self._drift[topic_id]
         mean_d = drift.mean()
         std_d = drift.std()
-        return [i for i, d in enumerate(drift) if d > mean_d + threshold * std_d]
+        return [
+            i for i, d in enumerate(drift)
+            if d > mean_d + threshold * std_d and d > self.NOISE_FLOOR
+        ]
 
     def keywords_over_time(
         self,

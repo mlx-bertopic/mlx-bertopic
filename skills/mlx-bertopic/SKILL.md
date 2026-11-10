@@ -17,7 +17,7 @@ metadata:
 
 Repository: `github.com/mlx-bertopic/mlx-bertopic` (MIT). Verified on macOS 27.2,
 arm64 (M4 Max), Python 3.11.18, bertopic 0.17.0, mlx 0.32.0. This skill
-describes **0.7.1**.
+describes **0.7.2**.
 
 Every backend is an independent MLX reimplementation, not a port; each is aligned
 to a pinned upstream reference and guarded by golden tests (`mlx_ctfidf` vs
@@ -178,10 +178,15 @@ above ~250K.
 from mlx_dtm import NeuralDTM
 dtm = NeuralDTM(n_bins=20, smooth=True).fit(embeddings, topics, timestamps)
 dtm.drift_dataframe()            # columns: topic, bin, timestamp, drift
-dtm.top_drifting_topics(10)      # [(topic_id, drift), ...]
-dtm.changepoints(0)              # bin indices with sharp semantic shifts
+dtm.top_drifting_topics(10)      # [(topic_id, total_drift), ...]
+dtm.get_drift(0)                 # {0: array(n_bins-1,)} — keyed by topic, not the array
+dtm.changepoints(0)              # bin indices above mean+2σ AND above NOISE_FLOOR (1e-3)
 dtm.keywords_over_time(0, vocab_embeddings, vocab_words)
 ```
+
+`drift` is cosine distance between consecutive bin centroids; `changepoints`
+needs an absolute floor on top of the σ rule, otherwise a topic that does not
+move reports 1e-7 noise as a shift (fixed in 0.7.2).
 
 Works in embedding space (topic centroid movement), not Blei's word-distribution
 random walk — it needs the embeddings the topic model saw plus a timestamp per
@@ -223,7 +228,7 @@ best = sim.max(1); match = sim.argmax(1)
 ## 12. Maintaining the repo
 
 ```bash
-python -m pytest tests -q          # expected: 78 passed
+python -m pytest tests -q          # expected: 88 passed
 ```
 
 - `tests/` holds golden/parity tests; a green run after a `bertopic` or

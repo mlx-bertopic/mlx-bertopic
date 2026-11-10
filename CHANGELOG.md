@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.7.2 (2026-11-10)
+
+### Fixed
+
+- **`NeuralDTM.changepoints()` reported numerical noise as semantic shifts.**
+  A topic whose centroids do not move produced drift values around 1e-7..1e-4;
+  with a (near) constant drift series both the mean and the standard deviation
+  collapse, so `d > mean + 2·std` fired on noise. Reported output for a static
+  topic was `[4]` where the correct answer is `[]`. Changepoints now also
+  require `d > NOISE_FLOOR` (1e-3 cosine distance), documented as a class
+  attribute so it can be tuned.
+
+### Added
+
+- `tests/test_neural_dtm.py` — the class shipped in 0.6.0 with no coverage at
+  all. 10 tests pin the tidy-dataframe schema, per-topic drift ranking,
+  changepoint placement, `keywords_over_time` alignment, `topic_ids`
+  restriction, and the `smooth=True` LSTM path (drift recomputed from smoothed
+  centroids).
+
 ## 0.7.1 (2026-11-10)
 
 ### Fixed
