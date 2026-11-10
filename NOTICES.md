@@ -53,7 +53,8 @@ Where each one is called:
 - **`mlx-embeddings`** — only inside `mlx_bertopic.embedder.MlxEmbedder`
   (`load()` / `generate()`); every other module runs without it. It is licensed
   **GPL-3.0**, unlike this package (MIT), so it is kept out of the base install
-  and lives in the `[embed]` extra: `pip install "mlx-bertopic[embed]"`.
+  and lives in the `[embed]` extra:
+  `pip install "mlx-bertopic[embed] @ git+https://github.com/mlx-bertopic/mlx-bertopic.git"`.
   Installing it does not relicense this code, but a GPL-3.0 work is present in
   any environment where `MlxEmbedder` is used or a bundle is redistributed. If
   that matters for your deployment, pass any object with an

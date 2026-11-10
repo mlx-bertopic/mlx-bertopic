@@ -14,7 +14,9 @@ def test_missing_mlx_embeddings_raises_actionable_error(monkeypatch):
     monkeypatch.setitem(sys.modules, "mlx_embeddings", None)
     with pytest.raises(ImportError) as excinfo:
         MlxEmbedder("mlx-community/bge-small-en-v1.5-bf16")
-    assert "mlx-bertopic[embed]" in str(excinfo.value)
+    message = str(excinfo.value)
+    assert "[embed]" in message
+    assert "git+https://github.com/mlx-bertopic/mlx-bertopic.git" in message
 
 
 def test_install_hint_names_license_and_alternative():

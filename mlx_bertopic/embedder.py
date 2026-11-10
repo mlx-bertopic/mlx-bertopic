@@ -2,17 +2,19 @@
 
 Wraps mlx-embeddings to match BERTopic's BaseEmbedder interface.
 
-mlx-embeddings is an optional dependency (GPL-3.0): install it with
-``pip install "mlx-bertopic[embed]"``. Any object exposing
-``embed(documents) -> np.ndarray`` can be passed to BERTopic instead.
+mlx-embeddings is an optional dependency (GPL-3.0): install it with the
+``[embed]`` extra (this package is distributed from GitHub, not PyPI). Any
+object exposing ``embed(documents) -> np.ndarray`` can be passed to BERTopic
+instead.
 """
 import numpy as np
 from bertopic.backend import BaseEmbedder
 
 _INSTALL_HINT = (
     "MlxEmbedder needs the optional dependency mlx-embeddings (GPL-3.0), which "
-    'is not installed by default: pip install "mlx-bertopic[embed]" — or pass '
-    "any object with embed(documents) -> np.ndarray as embedding_model."
+    "is not installed by default: pip install "
+    '"mlx-bertopic[embed] @ git+https://github.com/mlx-bertopic/mlx-bertopic.git"'
+    " — or pass any object with embed(documents) -> np.ndarray as embedding_model."
 )
 
 

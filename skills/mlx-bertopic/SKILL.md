@@ -17,7 +17,7 @@ metadata:
 
 Repository: `github.com/mlx-bertopic/mlx-bertopic` (MIT). Verified on macOS 27.2,
 arm64 (M4 Max), Python 3.11.18, bertopic 0.17.0, mlx 0.32.0. This skill
-describes **0.7.0**.
+describes **0.7.1**.
 
 Every backend is an independent MLX reimplementation, not a port; each is aligned
 to a pinned upstream reference and guarded by golden tests (`mlx_ctfidf` vs
@@ -43,7 +43,7 @@ BERTopic's `ClassTfidfTransformer`, `mlx_hdbscan` vs Cython `hdbscan`).
 | Optional | `hdbscan` (Cython reference, faster below ~10K docs) |
 
 ```bash
-pip install "git+https://github.com/mlx-bertopic/mlx-bertopic.git[embed,viz]"
+pip install "mlx-bertopic[embed,viz] @ git+https://github.com/mlx-bertopic/mlx-bertopic.git"
 # or from a checkout
 git clone https://github.com/mlx-bertopic/mlx-bertopic.git && cd mlx-bertopic
 python3.11 -m pip install -e ".[embed,viz]"
@@ -239,7 +239,7 @@ python -m pytest tests -q          # expected: 78 passed
 |---|---|---|
 | `NotImplementedError: ... incremental transform on new data` | `MlxUMAPWrapper.transform()` only serves the fitted array; `BERTopic.transform(new_docs)` needs a refit | refit on the combined dataset (`fit_transform`) |
 | `TypeError: unsupported type MlxKeyBERT for representation_model` | wrapper was not a `BaseRepresentation` subclass (checkout < 0.7.0) | upgrade, or use the §6 fallbacks |
-| `ImportError` from `MlxEmbedder` mentioning `mlx-bertopic[embed]` | `mlx-embeddings` is an extra (GPL-3.0), not a base dep | `pip install "mlx-bertopic[embed]"`, or pass your own `embed()` object |
+| `ImportError` from `MlxEmbedder` mentioning `[embed]` | `mlx-embeddings` is an extra (GPL-3.0), not a base dep | `pip install "mlx-bertopic[embed] @ git+https://github.com/mlx-bertopic/mlx-bertopic.git"`, or pass your own `embed()` object |
 | `ModuleNotFoundError: mlx_bertopic` | script outside the checkout and package not installed | `pip install -e .` or `PYTHONPATH=<checkout>` |
 | Only 1 giant cluster, UMAP coords at ±hundreds | mlx-vis gradient divergence on >50K × >1000d | already handled by `MlxUMAPWrapper` stabilization (`MAX_NORM=15`, `HARD_CLIP=20`); don't disable it |
 | `Matrix too large for GPU (...)` | c-TF-IDF above 5e8 elements | expected numpy fallback |

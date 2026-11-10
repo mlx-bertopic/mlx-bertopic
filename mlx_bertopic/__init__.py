@@ -32,7 +32,7 @@ Usage:
     topics, probs = topic_model.fit_transform(documents)
 """
 
-__version__ = "0.7.0"
+__version__ = "0.7.1"
 
 # Map public name -> module that defines it. Imported lazily so that importing
 # one backend does not require every optional dependency (mlx-embeddings,

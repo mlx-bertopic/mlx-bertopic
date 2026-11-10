@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.7.1 (2026-11-10)
+
+### Fixed
+
+- **Install instructions named a package that does not exist.** This project is
+  not published on PyPI, but the `MlxEmbedder` error hint, `NOTICES.md` and the
+  README told users to run `pip install "mlx-bertopic[embed]"`. Every install
+  command now uses a PEP 508 direct reference:
+  `pip install "mlx-bertopic[embed] @ git+https://github.com/mlx-bertopic/mlx-bertopic.git"`.
+- **`git+…git[embed]` is not valid pip syntax** (pip forwards `[embed]` to
+  `git clone` and fails). Documented as `"package[extra] @ <url>"`, with the
+  wheel-URL form as the no-build alternative.
+- README gains a troubleshooting note for `pip install git+https://…` failing on
+  a machine whose global git hooks need `git-lfs` (observed: clone exits 2 with
+  only the LFS warning; fix is installing `git-lfs` or setting
+  `core.hookspath=/dev/null` for the pip run).
+
 ## 0.7.0 (2026-11-10)
 
 ### Breaking

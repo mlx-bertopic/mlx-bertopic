@@ -68,13 +68,26 @@ For the full upstream fix (clip ordering + per-epoch projection), see
 
 ## Install
 
+Not on PyPI — install from a tag, or from the wheel attached to a GitHub
+release:
+
 ```bash
-pip install "git+https://github.com/mlx-bertopic/mlx-bertopic.git"
+# from a tag (pin the ref you want)
+pip install "mlx-bertopic @ git+https://github.com/mlx-bertopic/mlx-bertopic.git@v0.7.1"
+
 # MLX embeddings backend (GPL-3.0) — only needed for MlxEmbedder
-pip install "git+https://github.com/mlx-bertopic/mlx-bertopic.git[embed]"
-# HTML reports from mlx_bertopic.viz.generate_all
-pip install "git+https://github.com/mlx-bertopic/mlx-bertopic.git[viz]"
+pip install "mlx-bertopic[embed] @ git+https://github.com/mlx-bertopic/mlx-bertopic.git@v0.7.1"
+
+# everything, including the HTML report generator from mlx_bertopic.viz
+pip install "mlx-bertopic[embed,viz] @ git+https://github.com/mlx-bertopic/mlx-bertopic.git@v0.7.1"
+
+# or the prebuilt wheel from the release page
+pip install "mlx-bertopic[embed,viz] @ https://github.com/mlx-bertopic/mlx-bertopic/releases/download/v0.7.1/mlx_bertopic-0.7.1-py3-none-any.whl"
 ```
+
+Extras must be written as `"package[extra] @ <url>"`; appending `[extra]` to a
+`git+` URL (`...git[extra]`) makes pip pass the brackets to `git clone` and
+fail.
 
 Apple Silicon only (MLX = Metal). Python ≥ 3.10.
 
@@ -87,13 +100,19 @@ Apple Silicon only (MLX = Metal). Python ≥ 3.10.
 > (BERTopic's own requirements). The MLX backends bypass them at runtime, but
 > they are installed for BERTopic's base classes.
 
+> If `pip install git+https://…` dies with
+> `This repository is configured for Git LFS but 'git-lfs' was not found`,
+> your global git hooks are the problem, not the package: install `git-lfs`, or
+> run pip with `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hookspath
+> GIT_CONFIG_VALUE_0=/dev/null`.
+
 ### Upgrading from 0.6.x
 
 `mlx-embeddings` moved out of the base install in **0.7.0** (it is GPL-3.0; this
 package is MIT). If you use `MlxEmbedder`, add the extra:
 
 ```bash
-pip install -U "git+https://github.com/mlx-bertopic/mlx-bertopic.git[embed]"
+pip install -U "mlx-bertopic[embed] @ git+https://github.com/mlx-bertopic/mlx-bertopic.git"
 ```
 
 Everything else — UMAP, HDBSCAN, c-TF-IDF, KeyBERT/MMR, LDA, NeuralDTM, outlier

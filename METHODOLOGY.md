@@ -211,4 +211,4 @@ model, so they already live in one semantic space.
 | Comment timestamp acquisition | Fill in from the source platform API | Precise temporal analysis |
 | Chinese support (CKIP-MLX) | Port CKIP-Transformers with the same architecture | More languages |
 | Real-time topic prediction | HDBSCAN approximate_predict + DTM | Auto-assign new comments |
-| PyPI release | Official package release | Community adoption |
+| Release artifacts | Wheel + sdist attached to every tag (0.7.0 onward) | Install without a local build |
